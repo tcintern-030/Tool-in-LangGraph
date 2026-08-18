@@ -8,6 +8,7 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 from typing import Annotated
 from typing_extensions import TypedDict
+from langgraph.checkpoint.memory import MemorySaver
 from tools import tools
 
 load_dotenv()
@@ -81,11 +82,18 @@ graph_builder.add_conditional_edges(
 
 graph_builder.add_edge("tools", "agent")
 
-graph = graph_builder.compile()
+memory = MemorySaver()
+graph = graph_builder.compile(checkpointer=memory)
 
 def run_agent(question):
     print("---USER---")
     print(question)
+
+    config = {
+        "configurable": {
+            "thread_id": "conversation_1"
+        }
+    }
 
     result = graph.invoke(
         {
@@ -94,7 +102,8 @@ def run_agent(question):
                     content=question
                 )
             ]
-        }
+        }, 
+        config
     )
 
     final_message = result["messages"][-1]
